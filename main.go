@@ -6,13 +6,11 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"mime"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"regexp"
 	"strconv"
 	"sync"
 	"time"
@@ -100,7 +98,7 @@ func handleBench(ws *websocket.Conn, data wsData) {
 	}
 
 	submitURL := bi.url + "submit.php"
-	r, _ := regexp.Compile("^\\d+$")
+	// r, _ := regexp.Compile("^\\d+$")
 	resp, err := client.PostForm(submitURL, url.Values{
 		"id":       {bi.problem_id},
 		"language": {"0"},
@@ -118,6 +116,7 @@ func handleBench(ws *websocket.Conn, data wsData) {
 		})
 		return
 	}
+	//  && resp.StatusCode != http.StatusFound
 	if resp.StatusCode != http.StatusOK {
 		ws.WriteJSON(struct {
 			ID    string `json:"id"`
@@ -130,19 +129,20 @@ func handleBench(ws *websocket.Conn, data wsData) {
 		})
 		return
 	}
-	body, _ := ioutil.ReadAll(resp.Body)
-	if !r.MatchString(string(body[:])) {
-		ws.WriteJSON(struct {
-			ID    string `json:"id"`
-			Stage string `json:"stage"`
-			Error string `json:"error"`
-		}{
-			ID:    data.ID,
-			Stage: "check_mode",
-			Error: "response body not match " + string(body[:]),
-		})
-		return
-	}
+	/*
+		body, _ := ioutil.ReadAll(resp.Body)
+		if !r.MatchString(string(body[:])) {
+			ws.WriteJSON(struct {
+				ID    string `json:"id"`
+				Stage string `json:"stage"`
+				Error string `json:"error"`
+			}{
+				ID:    data.ID,
+				Stage: "check_mode",
+				Error: "response body not match " + string(body[:]),
+			})
+			return
+		}*/
 
 	ws.WriteJSON(struct {
 		ID    string `json:"id"`
@@ -162,7 +162,7 @@ func handleBench(ws *websocket.Conn, data wsData) {
 	var l sync.Mutex
 	var updateBenchResult = func(stage string) {
 		elapsed := time.Since(start).Milliseconds()
-		var nextData benchResult = benchResult{
+		var nextData = benchResult{
 			Stage:        stage,
 			ID:           data.ID,
 			Count200:     count200.Value(),
@@ -192,13 +192,13 @@ func handleBench(ws *websocket.Conn, data wsData) {
 			go updateBenchResult("bench_update")
 			return
 		}
-		body, _ := ioutil.ReadAll(resp.Body)
+		// body, _ := ioutil.ReadAll(resp.Body)
 		if resp.StatusCode == http.StatusOK {
-			if r.MatchString(string(body[:])) {
-				count200.Plus(1)
-				go updateBenchResult("bench_update")
-				return
-			}
+			// if r.MatchString(string(body[:])) {
+			count200.Plus(1)
+			go updateBenchResult("bench_update")
+			return
+			// }
 		}
 		countUnknown.Plus(1)
 		// fmt.Println("dump resp ", runIndex)
@@ -266,7 +266,7 @@ func (e embedFileSystem) Exists(prefix string, path string) bool {
 func EmbedFolder(fsEmbed embed.FS, targetPath string, index bool) static.ServeFileSystem {
 	subFS, err := fs.Sub(fsEmbed, targetPath)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	return embedFileSystem{
 		FileSystem: http.FS(subFS),
@@ -293,7 +293,7 @@ func mustFS() http.FileSystem {
 	sub, err := fs.Sub(staticFS, "build/public")
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	return http.FS(sub)

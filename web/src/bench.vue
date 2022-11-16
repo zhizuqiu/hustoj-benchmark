@@ -18,15 +18,15 @@
         </div>
         <div class="pure-control-group">
           <label>测试次数</label>
-          <input type="number" v-model="serverConfig.total" />
+          <input type="text" v-model="serverConfig.total" />
         </div>
         <div class="pure-control-group">
           <label>预期并发</label>
-          <input type="number" v-model="serverConfig.concurrency" />
+          <input type="text" v-model="serverConfig.concurrency" />
         </div>
         <div class="pure-control-group">
           <label>题目 ID</label>
-          <input type="number" v-model="serverConfig.problem_id" />
+          <input type="text" v-model="serverConfig.problem_id" />
         </div>
         <div class="pure-control-group">
           <label>题目解答</label>
@@ -88,24 +88,13 @@
 <script>
 import { reactive, ref, computed } from "vue";
 
-const answer = `#include <stdio.h>
- 
-int get_sum(int n)
-{
-    int sum = 0, i;
-    for (i = 1; i <= n; i++)
-        sum += i;
- 
-    return sum;
-}
- 
-int main()
-{
-    int input;
- 
-    while (scanf("%d", &input) != EOF)
-        printf("%d\\n\\n", get_sum(input));
- 
+const answer = `
+#include <stdio.h>
+int main(){
+    int a, b;
+    while(scanf("%d %d",&a, &b) != EOF){
+        printf("%d\\n", a + b);
+    }
     return 0;
 }
 `;
@@ -209,7 +198,6 @@ export default {
                 _serverConfig.total;
               const progressFixed = progress.toFixed(2);
               job.progress = progressFixed.endsWith('.00') ? progress : progressFixed;
-                
               job.timecost = timecost;
               job.qps = (count200 / (timecost / 1000)).toFixed(1);
             }
